@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Server
@@ -151,6 +152,37 @@ namespace Server
             Random random = new Random();
             string Chars = "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm123456789";
             return new string(Enumerable.Repeat(Chars, 15).Select(x => x[random.Next(Chars.Length)]).ToArray());
+        }
+        static void CheckDisconnectClient()
+        {
+            while (true)
+            {
+                for (int iClient = 0; iClient < ClientTokens.Count; iClient++)
+                {
+                    int ClientDuration = (int)DateTime.Now.Subtract(ClientConnections[iClient]).TotalSeconds;
+
+                    if (ClientDuration > Duration)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine($"Клиент {ClientTokens[iClient]} отключен из-за превышения времени подключения");
+                        ClientTokens.RemoveAt(iClient);
+                        ClientConnections.RemoveAt(iClient);
+                    }
+                }
+                Thread.Sleep(1000);
+            }
+        }
+        static void GetStatus()
+        {
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine($"Количество подключенных клиентов: {ClientTokens.Count}");
+            for (int i = 0; i < ClientTokens.Count; i++)
+            {
+                int ClientDuration = (int)DateTime.Now.Subtract(ClientConnections[i]).TotalSeconds;
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.WriteLine($"Клиент: {ClientTokens[i]}, время подключения: {ClientConnections[i].ToString("HH:mm:ss dd.MM")}, " +
+                    $"длительность подключения: {ClientDuration} секунд");
+            }
         }
     }
 }
