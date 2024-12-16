@@ -21,7 +21,15 @@ namespace Server
         static List<DateTime> ClientConnections = new List<DateTime>();
         static void Main(string[] args)
         {
-
+            OnSetings();
+            Thread tListener = new Thread(Connect);
+            tListener.Start();
+            Thread tDisconnect = new Thread(CheckDisconnectClient);
+            tDisconnect.Start();
+            while (true)
+            {
+                SetCommand();
+            }
         }
         static void OnSetings()
         {
@@ -121,6 +129,28 @@ namespace Server
                 Console.WriteLine("Ошибка: " + exp.Message);
             }
         }
+        static void SetCommand()
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            string Command = Console.ReadLine();
+            if (Command == "/config")
+            {
+                File.Delete(Directory.GetCurrentDirectory() + "/.config");
+                OnSetings();
+            }
+            else if (Command.Contains("/disconnect"))
+            {
+                Disconnect(Command);
+            }
+            else if (Command == "/status")
+            {
+                GetStatus();
+            }
+            else if (Command == "/help")
+            {
+                Help();
+            }
+        }
         static string SetCommandClient(string Command)
         {
             if (Command == "/token")
@@ -183,6 +213,27 @@ namespace Server
                 Console.WriteLine($"Клиент: {ClientTokens[i]}, время подключения: {ClientConnections[i].ToString("HH:mm:ss dd.MM")}, " +
                     $"длительность подключения: {ClientDuration} секунд");
             }
+        }
+        static void Help()
+        {
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.Write("Доступные команды: ");
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Write("/config");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine(" - изменить настройки сервера");
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Write("/disconnect");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine(" - отключить клиента от сервера");
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Write("/status");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine(" - показать статус подключений");
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Write("/help");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine(" - получить справку по командам");
         }
     }
 }
