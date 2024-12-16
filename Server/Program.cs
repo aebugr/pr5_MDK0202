@@ -221,19 +221,19 @@ namespace Server
             Console.ForegroundColor = ConsoleColor.Green;
             Console.Write("/config");
             Console.ForegroundColor = ConsoleColor.White;
-            Console.WriteLine(" - изменить настройки сервера");
+            Console.WriteLine(" : изменить настройки сервера");
             Console.ForegroundColor = ConsoleColor.Green;
             Console.Write("/disconnect");
             Console.ForegroundColor = ConsoleColor.White;
-            Console.WriteLine(" - отключить клиента от сервера");
+            Console.WriteLine(" : отключить клиента от сервера");
             Console.ForegroundColor = ConsoleColor.Green;
             Console.Write("/status");
             Console.ForegroundColor = ConsoleColor.White;
-            Console.WriteLine(" - показать статус подключений");
+            Console.WriteLine(" : показать статус подключений");
             Console.ForegroundColor = ConsoleColor.Green;
             Console.Write("/help");
             Console.ForegroundColor = ConsoleColor.White;
-            Console.WriteLine(" - получить справку по командам");
+            Console.WriteLine(" : получить справку по командам");
         }
     }
 }
