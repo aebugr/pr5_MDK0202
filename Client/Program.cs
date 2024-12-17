@@ -13,21 +13,19 @@ namespace Client
         static int Port;
         static string ClientToken;
         static DateTime ClientDateConnection;
-        static bool IsConnected = false; // Флаг для отслеживания состояния подключения
-        static bool IsBlacklisted = false; // Флаг для отслеживания блокировки
-        static bool ShouldRun = true; // Флаг для управления потоком CheckToken
-
+        static bool IsConnected = false; 
+        static bool IsBlacklisted = false; 
+        static bool ShouldRun = true; 
         static void Main(string[] args)
         {
             OnSetings();
             Thread tCheckToken = new Thread(CheckToken);
             tCheckToken.Start();
-            while (ShouldRun) // Основной цикл программы
+            while (ShouldRun) 
             {
                 SetCommand();
             }
         }
-
         static void OnSetings()
         {
             string path = Directory.GetCurrentDirectory() + "/.config";
@@ -73,23 +71,20 @@ namespace Client
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine("/config");
         }
-
         static void Connect()
         {
-            if (IsBlacklisted) // Если клиент заблокирован, не подключаемся
+            if (IsBlacklisted) 
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("Вы заблокированы на сервере.");
                 return;
             }
-
-            if (IsConnected) // Если клиент уже подключён, не подключаемся снова
+            if (IsConnected) 
             {
                 Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.WriteLine("Вы уже подключены к серверу.");
                 return;
             }
-
             IPEndPoint endPoint = new IPEndPoint(Ip, Port);
             Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             try
@@ -112,14 +107,11 @@ namespace Client
                 string login = Console.ReadLine();
                 Console.Write("Введите пароль: ");
                 string password = Console.ReadLine();
-
                 string authMessage = $"/auth {login} {password}";
                 socket.Send(Encoding.UTF8.GetBytes(authMessage));
-
                 byte[] bytes = new byte[10485760];
                 int byteRec = socket.Receive(bytes);
                 string response = Encoding.UTF8.GetString(bytes, 0, byteRec);
-
                 if (response == "/limit")
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
@@ -129,8 +121,8 @@ namespace Client
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
                     Console.WriteLine("Ваш токен заблокирован на сервере.");
-                    IsBlacklisted = true; // Устанавливаем флаг блокировки
-                    ShouldRun = false; // Останавливаем основной цикл
+                    IsBlacklisted = true; 
+                    ShouldRun = false;
                 }
                 else if (response == "/auth_error")
                 {
@@ -141,22 +133,20 @@ namespace Client
                 {
                     ClientToken = response;
                     ClientDateConnection = DateTime.Now;
-                    IsConnected = true; // Устанавливаем флаг подключения
+                    IsConnected = true;
                     Console.ForegroundColor = ConsoleColor.Green;
                     Console.WriteLine("Токен подключения: " + ClientToken);
                 }
             }
         }
-
         static void GetStatus()
         {
-            if (IsBlacklisted) // Если клиент заблокирован, не отправляем запрос
+            if (IsBlacklisted) 
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("Вы заблокированы на сервере.");
                 return;
             }
-
             if (!string.IsNullOrEmpty(ClientToken))
             {
                 string response = SendCommandToServer(ClientToken);
@@ -165,7 +155,7 @@ namespace Client
                     Console.ForegroundColor = ConsoleColor.Red;
                     Console.WriteLine("Клиент был отключен от сервера.");
                     ClientToken = string.Empty;
-                    IsConnected = false; // Сбрасываем флаг подключения
+                    IsConnected = false;
                 }
                 else
                 {
@@ -181,13 +171,12 @@ namespace Client
         }
         static string SendCommandToServer(string command)
         {
-            if (IsBlacklisted) // Если клиент заблокирован, не отправляем запрос
+            if (IsBlacklisted) 
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("Вы заблокированы на сервере.");
-                return string.Empty; // Возвращаем пустую строку
+                return string.Empty; 
             }
-
             IPEndPoint endPoint = new IPEndPoint(Ip, Port);
             Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             try
@@ -198,7 +187,7 @@ namespace Client
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("Ошибка: " + exp.Message);
-                return string.Empty; // Возвращаем пустую строку
+                return string.Empty;
             }
             if (socket.Connected)
             {
@@ -206,49 +195,41 @@ namespace Client
                 byte[] bytes = new byte[10485760];
                 int byteRec = socket.Receive(bytes);
                 string response = Encoding.UTF8.GetString(bytes, 0, byteRec);
-
                 if (response == "/blacklist")
                 {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("Ваш токен заблокирован на сервере.");
-                    IsBlacklisted = true; // Устанавливаем флаг блокировки
-                    IsConnected = false; // Сбрасываем флаг подключения
+                    IsBlacklisted = true; 
+                    IsConnected = false; 
                 }
                 else if (response == "/disconnect")
                 {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("Клиент был отключен от сервера.");
                     ClientToken = string.Empty;
-                    IsConnected = false; // Сбрасываем флаг подключения
+                    IsConnected = false; 
                 }
                 else
                 {
                     Console.ForegroundColor = ConsoleColor.Green;
                     Console.WriteLine("Ответ сервера: " + response);
                 }
-
-                return response; // Возвращаем ответ сервера
+                return response;
             }
-
-            return string.Empty; // Возвращаем пустую строку, если соединение не установлено
+            return string.Empty; 
         }
-
         static void CheckToken()
         {
-            while (ShouldRun) // Поток проверки токена работает, пока ShouldRun == true
+            while (ShouldRun) 
             {
-                if (!string.IsNullOrEmpty(ClientToken) && !IsBlacklisted) // Проверяем только если не заблокирован
+                if (!string.IsNullOrEmpty(ClientToken) && !IsBlacklisted) 
                 {
                     int duration = (int)DateTime.Now.Subtract(ClientDateConnection).TotalSeconds;
-                    if (duration > 60) // Пример: если время подключения превышает 60 секунд
+                    if (duration > 60) 
                     {
                         Console.ForegroundColor = ConsoleColor.Red;
                         Console.WriteLine("Время подключения истекло. Отключение от сервера.");
                         ClientToken = string.Empty;
-                        IsConnected = false; // Сбрасываем флаг подключения
+                        IsConnected = false; 
                     }
                 }
-                Thread.Sleep(1000); // Проверяем каждую секунду
+                Thread.Sleep(1000); 
             }
         }
         static void Help()
@@ -268,7 +249,6 @@ namespace Client
             Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine(" : показать данные клиента");
         }
-
         static void SetCommand()
         {
             Console.ForegroundColor = ConsoleColor.Green;

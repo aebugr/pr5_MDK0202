@@ -179,13 +179,11 @@ namespace Server
                 Console.WriteLine($"Клиент с токеном {Command} заблокирован.");
                 return "/blacklist";
             }
-
             if (Command.StartsWith("/auth"))
             {
                 string[] parts = Command.Split(' ');
                 string login = parts[1];
                 string password = parts[2];
-
                 if (AuthManager.Authenticate(login, password))
                 {
                     if (ClientTokens.Count < MaxClient)
@@ -209,7 +207,6 @@ namespace Server
                     return "/auth_error";
                 }
             }
-
             int index = ClientTokens.IndexOf(Command);
             if (index != -1)
             {
