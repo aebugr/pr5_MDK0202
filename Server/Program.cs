@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Server.Classes;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -19,9 +20,21 @@ namespace Server
 
         static List<string> ClientTokens = new List<string>();
         static List<DateTime> ClientConnections = new List<DateTime>();
+
+        static DatabaseManager DbManager;
+        static BlacklistManager BlacklistManager;
+        static Classes.AuthenticationManager AuthManager;
+
         static void Main(string[] args)
         {
+            ClientTokens.Clear();
+            ClientConnections.Clear();
             OnSetings();
+
+            DbManager = new DatabaseManager("Server=127.0.0.1;Database=PR5;port=3306;Uid=root;Pwd=;");
+            BlacklistManager = new BlacklistManager(DbManager);
+            AuthManager = new Classes.AuthenticationManager(DbManager);
+
             Thread tListener = new Thread(Connect);
             tListener.Start();
             Thread tDisconnect = new Thread(CheckDisconnectClient);
@@ -98,7 +111,7 @@ namespace Server
             IPEndPoint endPoint = new IPEndPoint(Ip, Port);
             Socket SocketListener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             SocketListener.Bind(endPoint);
-            SocketListener.Listen(10); 
+            SocketListener.Listen(10);
             while (true)
             {
                 Socket Handler = SocketListener.Accept();
@@ -107,6 +120,8 @@ namespace Server
                 string Message = Encoding.UTF8.GetString(Bytes, 0, ByteRec);
                 string Response = SetCommandClient(Message);
                 Handler.Send(Encoding.UTF8.GetBytes(Response));
+                Handler.Shutdown(SocketShutdown.Both);
+                Handler.Close();
             }
         }
         static void Disconnect(string command)
@@ -133,7 +148,7 @@ namespace Server
         {
             Console.ForegroundColor = ConsoleColor.Red;
             string Command = Console.ReadLine();
-            if (Command == "/config")
+            if (Command.Contains("/config"))
             {
                 File.Delete(Directory.GetCurrentDirectory() + "/.config");
                 OnSetings();
@@ -146,6 +161,11 @@ namespace Server
             {
                 GetStatus();
             }
+            else if (Command.StartsWith("/blacklist"))
+            {
+                string Token = Command.Replace("/blacklist ", "");
+                BlacklistManager.AddToBlacklist(Token);
+            }
             else if (Command == "/help")
             {
                 Help();
@@ -153,35 +173,59 @@ namespace Server
         }
         static string SetCommandClient(string Command)
         {
-            if (Command == "/token")
+            if (BlacklistManager.IsBlacklisted(Command))
             {
-                if (ClientTokens.Count < MaxClient)
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Клиент с токеном {Command} заблокирован.");
+                return "/blacklist";
+            }
+
+            if (Command.StartsWith("/auth"))
+            {
+                string[] parts = Command.Split(' ');
+                string login = parts[1];
+                string password = parts[2];
+
+                if (AuthManager.Authenticate(login, password))
                 {
-                    string newToken = GenerateToken();
-                    ClientTokens.Add(newToken);
-                    ClientConnections.Add(DateTime.Now);
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine($"Новый клиент подключен: {newToken}");
-                    return newToken; 
+                    if (ClientTokens.Count < MaxClient)
+                    {
+                        string newToken = GenerateToken();
+                        ClientTokens.Add(newToken);
+                        ClientConnections.Add(DateTime.Now);
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.WriteLine($"Новый клиент подключен: {newToken}");
+                        return newToken;
+                    }
+                    else
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("Нет места для нового клиента на сервере");
+                        return "/limit";
+                    }
                 }
                 else
                 {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("Нет места для нового клиента на сервере");
-                    return "/limit";
+                    return "/auth_error";
                 }
+            }
+
+            int index = ClientTokens.IndexOf(Command);
+            if (index != -1)
+            {
+                int duration = (int)DateTime.Now.Subtract(ClientConnections[index]).TotalSeconds;
+                return $"Клиент: {ClientTokens[index]}, время подключения: {ClientConnections[index]:HH:mm:ss dd.MM}, продолжительность: {duration} секунд";
             }
             else
             {
-                int index = ClientTokens.IndexOf(Command);
-                return index != -1 ? "/connect" : "/disconnect";
+                return "/disconnect";
             }
         }
         static string GenerateToken()
         {
             Random random = new Random();
             string Chars = "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm123456789";
-            return new string(Enumerable.Repeat(Chars, 15).Select(x => x[random.Next(Chars.Length)]).ToArray());
+            return new string(Enumerable.Repeat(Chars, 9).Select(x => x[random.Next(Chars.Length)]).ToArray());
         }
         static void CheckDisconnectClient()
         {
@@ -230,6 +274,10 @@ namespace Server
             Console.Write("/status");
             Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine(" : показать статус подключений");
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Write("/blacklist");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine(" : добавить клиента в ЧС");
             Console.ForegroundColor = ConsoleColor.Green;
             Console.Write("/help");
             Console.ForegroundColor = ConsoleColor.White;
